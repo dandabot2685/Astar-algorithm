@@ -2,7 +2,7 @@ import pygame
 from pygame import Vector2 as vec
 from math import sqrt
 from pygame.locals import*
-from time import perf_counter
+from time import perf_counter,sleep
 import heapq
 from itertools import count
 import numpy as np
@@ -48,13 +48,13 @@ class move_rect:
         
 class Astar():
     class path_node():
-        def __init__(self,pos,direction,target,curr_g,rect):
-            self.rect = rect
+        def __init__(self,pos,direction,target,curr_g,x,y):
+            self.rect = pygame.Rect(x,y,50,50)
             self.pos = pos # location on the tilemap
             self.direction = vec(direction) 
             self.parent = self.neg_tuple(direction)
-            self.gcost = curr_g + 5 # ground cost from moving to each node
-            self.hcost = (pos[0] - target[0])**2 + (pos[1] - target[1])**2 # calculates the heuristic (distance between two points)
+            self.gcost = curr_g + 10 # ground cost from moving to each node
+            self.hcost = (pos[0] - target[0])**2 + (pos[1] - target[1])**2  # calculates the heuristic (distance between two points)
             self.fcost = self.gcost + self.hcost # sums them together
 
         def neg_tuple(self,tpl):
@@ -63,6 +63,7 @@ class Astar():
         def Render(self,color): #this method is used for debugging
             self.text = font.render(str(self.parent),True,color)
             screen.blit(self.text,(self.rect.x,self.rect.y))
+            pygame.display.flip()
         def __repr__(self):
             return str(self.parent)
     
@@ -110,7 +111,7 @@ class Astar():
                     
                     if self.tilemap[self.is_barrier[0],self.is_barrier[1]] !=  1 and not self.is_barrier in self.closed:
                         offset = (self.rect.x + direction[0]*60,self.rect.y + direction[1]*60)
-                        self.neighbors.append(self.path_node(self.is_barrier,direction,target,self.curr_g,pygame.Rect(offset[0],offset[1],50,50)))
+                        self.neighbors.append(self.path_node(self.is_barrier,direction,target,self.curr_g,offset[0],offset[1]))
 
                         #pygame.draw.rect(screen,(255,255,255),pygame.Rect(offset[0],offset[1],50,50))
 
@@ -121,7 +122,6 @@ class Astar():
                         if neighbor.pos == element[-1].pos: #there is a neighbor in the open list
                             self.found = True
                             if element[-1].gcost > neighbor.gcost:  #compares gcost and if there is a better path then updates it           
-                                element[-1].gcost = neighbor.gcost
                                 element[-1].fcost = neighbor.gcost + element[-1].hcost
                                 element[-1].parent = neighbor.direction    
                     if self.found == False:  #neighbor was not in the open list   
@@ -139,12 +139,15 @@ class Astar():
                 self.closed.add(self.pos)
                 self.pos = self.lowest[2].pos # moves pos to the node with the lowest heuristic
 
-                #self.rect = self.lowest[2].rect.copy()
+                self.rect = self.lowest[2].rect.copy()
                 #pygame.display.flip()
                                
                 
             self.loop = True
-            
+            for obj in self.sol:
+                pygame.draw.rect(screen,(255,255,255),obj.rect)
+                pygame.display.flip()
+            sleep(1)
             return self.recontruct_path(self.sol[:]) #passes in a shallow copy of self.sol as an argument
         else:
             return self.sol
@@ -207,7 +210,7 @@ class chaser():
         self.shadow = Astar(tilemap,pos,self.rect.copy()) #in order to pathfind again i must redefine this
         self.count = 0
        
-        self.speed = 1
+        self.speed = 3
         self.skip = False
     def move(self,target):
         self.sol = self.shadow.pathfind(target) #gives a list containing vectors that pathfind to the target
@@ -363,7 +366,7 @@ model10 =    ['###################',
               '###################'
               ]
 
-design = model6
+design = model8
 
 tilemap_array,tilemap_rects,bot_x,bot_y = convert_array(design)
 # gets coords on tilemap for bot
@@ -409,4 +412,3 @@ while run == True:
     pygame.display.flip()
 
 pygame.quit()
-
